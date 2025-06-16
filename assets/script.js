@@ -19,6 +19,280 @@ jQuery(document).ready(function($) {
     
     console.log('COD Verifier: Checkout type:', isBlockCheckout ? 'Blocks' : 'Classic');
     
+    // ===== FLOATING POPUP NOTIFICATION SYSTEM =====
+    
+    function createFloatingPopupHTML() {
+        return `
+            <div id="cod-floating-popup" class="cod-floating-popup" style="display: none;">
+                <div class="cod-popup-container">
+                    <div class="cod-popup-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="cod-popup-content">
+                        <div class="cod-popup-title">Verification Required</div>
+                        <div class="cod-popup-message"></div>
+                    </div>
+                    <button class="cod-popup-close" type="button" aria-label="Close notification">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+    
+    function injectFloatingPopupStyles() {
+        if ($('#cod-floating-popup-styles').length > 0) return;
+        
+        const styles = `
+            <style id="cod-floating-popup-styles">
+                .cod-floating-popup {
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 999999;
+                    max-width: 400px;
+                    min-width: 320px;
+                    pointer-events: none;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+                }
+                
+                .cod-popup-container {
+                    background: #ffffff;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 12px;
+                    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+                    padding: 16px;
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 12px;
+                    pointer-events: auto;
+                    transform: translateX(100%);
+                    opacity: 0;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                
+                .cod-floating-popup.show .cod-popup-container {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                
+                .cod-popup-icon {
+                    flex-shrink: 0;
+                    width: 40px;
+                    height: 40px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                }
+                
+                .cod-popup-content {
+                    flex: 1;
+                    min-width: 0;
+                }
+                
+                .cod-popup-title {
+                    font-weight: 600;
+                    font-size: 14px;
+                    color: #1f2937;
+                    margin-bottom: 4px;
+                    line-height: 1.4;
+                }
+                
+                .cod-popup-message {
+                    font-size: 13px;
+                    color: #6b7280;
+                    line-height: 1.5;
+                    word-wrap: break-word;
+                }
+                
+                .cod-popup-close {
+                    flex-shrink: 0;
+                    width: 24px;
+                    height: 24px;
+                    border: none;
+                    background: none;
+                    color: #9ca3af;
+                    cursor: pointer;
+                    border-radius: 4px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s ease;
+                    padding: 0;
+                }
+                
+                .cod-popup-close:hover {
+                    color: #6b7280;
+                    background: #f3f4f6;
+                }
+                
+                .cod-popup-close:focus {
+                    outline: 2px solid #667eea;
+                    outline-offset: 2px;
+                }
+                
+                /* Mobile responsive */
+                @media (max-width: 480px) {
+                    .cod-floating-popup {
+                        top: 10px;
+                        right: 10px;
+                        left: 10px;
+                        max-width: none;
+                        min-width: auto;
+                    }
+                    
+                    .cod-popup-container {
+                        padding: 14px;
+                        gap: 10px;
+                    }
+                    
+                    .cod-popup-icon {
+                        width: 36px;
+                        height: 36px;
+                    }
+                    
+                    .cod-popup-title {
+                        font-size: 13px;
+                    }
+                    
+                    .cod-popup-message {
+                        font-size: 12px;
+                    }
+                }
+                
+                /* Dark mode support */
+                @media (prefers-color-scheme: dark) {
+                    .cod-popup-container {
+                        background: #1f2937;
+                        border-color: #374151;
+                        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3), 0 4px 6px rgba(0, 0, 0, 0.1);
+                    }
+                    
+                    .cod-popup-title {
+                        color: #f9fafb;
+                    }
+                    
+                    .cod-popup-message {
+                        color: #d1d5db;
+                    }
+                    
+                    .cod-popup-close {
+                        color: #9ca3af;
+                    }
+                    
+                    .cod-popup-close:hover {
+                        color: #d1d5db;
+                        background: #374151;
+                    }
+                }
+                
+                /* High contrast mode */
+                @media (prefers-contrast: high) {
+                    .cod-popup-container {
+                        border-width: 2px;
+                        border-color: #000000;
+                    }
+                    
+                    .cod-popup-title {
+                        color: #000000;
+                        font-weight: 700;
+                    }
+                    
+                    .cod-popup-close {
+                        border: 1px solid #000000;
+                    }
+                }
+                
+                /* Reduced motion */
+                @media (prefers-reduced-motion: reduce) {
+                    .cod-popup-container {
+                        transition: opacity 0.2s ease;
+                    }
+                    
+                    .cod-floating-popup.show .cod-popup-container {
+                        transform: none;
+                    }
+                }
+            </style>
+        `;
+        
+        $('head').append(styles);
+    }
+    
+    function showFloatingMessage(message, title = 'Verification Required') {
+        // Inject styles if not already present
+        injectFloatingPopupStyles();
+        
+        // Remove existing popup if present
+        $('#cod-floating-popup').remove();
+        
+        // Create and inject popup HTML
+        $('body').append(createFloatingPopupHTML());
+        
+        const $popup = $('#cod-floating-popup');
+        const $messageEl = $popup.find('.cod-popup-message');
+        const $titleEl = $popup.find('.cod-popup-title');
+        const $closeBtn = $popup.find('.cod-popup-close');
+        
+        // Set content
+        $titleEl.text(title);
+        $messageEl.text(message);
+        
+        // Show popup with animation
+        $popup.show();
+        
+        // Trigger animation after a small delay to ensure DOM is ready
+        setTimeout(() => {
+            $popup.addClass('show');
+        }, 10);
+        
+        // Auto-hide after 5 seconds
+        const autoHideTimer = setTimeout(() => {
+            hideFloatingMessage();
+        }, 5000);
+        
+        // Close button handler
+        $closeBtn.off('click').on('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            clearTimeout(autoHideTimer);
+            hideFloatingMessage();
+        });
+        
+        // Store timer reference for potential cleanup
+        $popup.data('autoHideTimer', autoHideTimer);
+        
+        console.log('COD Verifier: Floating message shown:', message);
+    }
+    
+    function hideFloatingMessage() {
+        const $popup = $('#cod-floating-popup');
+        if ($popup.length === 0) return;
+        
+        // Clear any existing timer
+        const timer = $popup.data('autoHideTimer');
+        if (timer) {
+            clearTimeout(timer);
+        }
+        
+        // Remove show class to trigger fade-out animation
+        $popup.removeClass('show');
+        
+        // Remove from DOM after animation completes
+        setTimeout(() => {
+            $popup.remove();
+        }, 300);
+        
+        console.log('COD Verifier: Floating message hidden');
+    }
+    
     // ===== UTILITY FUNCTIONS =====
     
     // Function to get selected payment method (primarily for showing/hiding the box)
@@ -450,7 +724,7 @@ jQuery(document).ready(function($) {
           updatePlaceOrderButtonState();
      });
     
-    // ===== CRITICAL VALIDATION FUNCTION (Simplified) =====
+    // ===== CRITICAL VALIDATION FUNCTION (Updated with Floating Popup) =====
     // This function acts as a final safety net by checking if the button is disabled.
     function preventOrderPlacement(e) {
         console.log('COD Verifier: preventOrderPlacement triggered (final button check). ');
@@ -472,20 +746,28 @@ jQuery(document).ready(function($) {
                  }
             }
 
-            // Re-add WooCommerce notice if verification is incomplete
-            const selectedMethod = getSelectedPaymentMethod(); // Use this only to potentially show notice
+            // Show modern floating popup instead of alert
+            const selectedMethod = getSelectedPaymentMethod();
             if (selectedMethod === 'cod' || selectedMethod === 'cash_on_delivery') {
                  let errors = [];
                  if (codVerifier.enableOTP === '1' && !window.codVerifierStatus.otpVerified) {
-                     errors.push('Please verify your phone number with OTP');
+                     errors.push('• Phone number verification via OTP');
                  }
                  if (codVerifier.enableToken === '1' && (!window.codVerifierStatus.tokenVerified || !$('#cod_token_confirmed').is(':checked'))) {
-                     errors.push('Please complete the ₹1 token payment and confirm');
+                     errors.push('• ₹1 token payment completion and confirmation');
                  }
+                 
                  if (errors.length > 0) {
-                    // Clear previous notices before adding new ones
-                    $('.woocommerce-error, .woocommerce-message, .woocommerce-info').remove();
-                    $('.woocommerce-notices-wrapper').html('<div class="woocommerce-error" role="alert">' + errors.join('<br>• ') + '</div>');
+                    const message = 'Please complete the following steps:\n' + errors.join('\n');
+                    showFloatingMessage(message, 'Complete Verification');
+                    
+                    // Scroll to verification section smoothly
+                    const $verificationBox = $('#cod-verifier-wrapper-active');
+                    if ($verificationBox.length > 0 && $verificationBox.is(':visible')) {
+                        $('html, body').animate({
+                            scrollTop: $verificationBox.offset().top - 100
+                        }, 500);
+                    }
                  }
             }
 
